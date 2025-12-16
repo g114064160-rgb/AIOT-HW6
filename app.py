@@ -102,15 +102,25 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_json(path: Path) -> Path:
+    """Find JSON file in common locations: given path, CWD, script directory."""
+    candidates = [
+        path,
+        Path.cwd() / path,
+        Path(__file__).resolve().parent / path.name,
+    ]
+    for cand in candidates:
+        if cand.exists():
+            return cand
+    raise FileNotFoundError(
+        f"JSON file not found. Tried: {', '.join(str(c) for c in candidates)}"
+    )
+
+
 def main() -> None:
     args = parse_args()
-    if not args.json.exists():
-        raise FileNotFoundError(
-            f"JSON file not found: {args.json}. "
-            "Provide a valid path with --json."
-        )
-
-    locations = load_locations(args.json)
+    json_path = resolve_json(args.json)
+    locations = load_locations(json_path)
     with sqlite3.connect(args.db) as conn:
         conn.execute("PRAGMA foreign_keys = ON;")
         ensure_schema(conn)

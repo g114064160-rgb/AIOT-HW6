@@ -6,8 +6,23 @@ from typing import Any, Dict, List, Tuple
 
 import streamlit as st
 
+import app as ingest  # reuse ingestion utilities
+
 
 DEFAULT_DB = Path("data.db")
+DEFAULT_JSON = Path("F-A0010-001.json")
+
+
+def resolve_json(path: Path) -> Path | None:
+    candidates = [
+        path,
+        Path.cwd() / path,
+        Path(__file__).resolve().parent / path.name,
+    ]
+    for cand in candidates:
+        if cand.exists():
+            return cand
+    return None
 
 
 def load_locations(conn: sqlite3.Connection) -> List[str]:
@@ -44,17 +59,50 @@ def load_temperatures(
     ]
 
 
+def ingest_json_to_db(db_path: Path, json_path: Path) -> str:
+    locations = ingest.load_locations(json_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON;")
+        ingest.ensure_schema(conn)
+        ingest.insert_data(conn, locations)
+    return f"已匯入 {len(locations)} 個地區到 {db_path}"
+
+
 def main() -> None:
     st.title("CWA 農業氣象 - SQLite 資料瀏覽")
-    st.caption("來源：data.db (由 app.py 寫入)")
+    st.caption("來源：data.db (若不存在，可從 JSON 匯入)")
 
-    db_path_str = st.text_input("SQLite 路徑", value=str(DEFAULT_DB))
+    col1, col2 = st.columns(2)
+    with col1:
+        db_path_str = st.text_input("SQLite 路徑", value=str(DEFAULT_DB))
+    with col2:
+        json_path_str = st.text_input("JSON 路徑（用於匯入）", value=str(DEFAULT_JSON))
+
     db_path = Path(db_path_str).expanduser()
+    json_path_candidate = resolve_json(Path(json_path_str).expanduser())
 
     if not db_path.exists():
-        st.error(f"找不到資料庫檔案: {db_path}")
-        st.info("請先執行 app.py 產生 data.db 或調整路徑。")
-        return
+        st.warning(f"找不到資料庫檔案: {db_path}")
+        if json_path_candidate:
+            try:
+                msg = ingest_json_to_db(db_path, json_path_candidate)
+                st.success(msg)
+            except Exception as exc:  # noqa: BLE001
+                st.exception(exc)
+                return
+        else:
+            st.info("請提供有效的 JSON 路徑並按下『重新匯入』按鈕。")
+            return
+
+    if st.button("重新匯入（覆寫相同日期資料）"):
+        if not json_path_candidate:
+            st.error("找不到 JSON 檔案，請確認路徑。")
+        else:
+            try:
+                msg = ingest_json_to_db(db_path, json_path_candidate)
+                st.success(msg)
+            except Exception as exc:  # noqa: BLE001
+                st.exception(exc)
 
     try:
         conn = sqlite3.connect(db_path)
@@ -64,6 +112,10 @@ def main() -> None:
 
     with conn:
         locations = load_locations(conn)
+        if not locations:
+            st.warning("資料庫目前沒有地區資料，請先匯入。")
+            return
+
         st.success(f"已載入 {len(locations)} 個地區")
 
         selected = st.selectbox("選擇地區", ["全部"] + locations)

@@ -18,7 +18,8 @@ python app.py --json /path/to/F-A0010-001.json --db /path/to/data.db
 ```bash
 streamlit run streamlit_app.py
 ```
-- Change DB path in the UI if needed (defaults to `data.db`).
+- 可在 UI 修改 DB 路徑（預設 `data.db`）與 JSON 路徑。
+- 若 DB 不存在，會嘗試自動用 JSON 匯入；亦可按「重新匯入」強制覆寫同日期資料。
 - Filter by location or view all.
 
 ## Deployment (Streamlit Cloud)
@@ -28,9 +29,9 @@ streamlit run streamlit_app.py
 4) If using live JSON, add it to the repo or host it and update DB path after ingest.
 
 ## Common Issues
-- FileNotFoundError (ingest): provide `--json` with a valid path.
-- No data in UI: ensure `data.db` exists and has rows (run `python app.py` first).
-- Wrong DB path in UI: update the path field to point to the correct SQLite file.
+- FileNotFoundError (ingest): provide `--json` with a valid path, or place `F-A0010-001.json` beside `app.py`.
+- No data in UI: DB 可能不存在或無資料，UI 會提示並可直接匯入。
+- Wrong DB path in UI:更新 DB 路徑或 JSON 路徑後重新匯入。
 
 ## Maintenance
 - Schema migrations: adjust `ensure_schema` in `app.py`; consider versioning.
