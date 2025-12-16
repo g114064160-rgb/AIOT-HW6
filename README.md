@@ -22,3 +22,7 @@ pip install -r requirements.txt
 ## 資料表設計
 - `locations(id, name UNIQUE)`
 - `daily_temperatures(id, location_id, date, max_temp_c, min_temp_c, UNIQUE(location_id, date))`
+
+## 進階文件
+- 系統架構：`docs/architecture.md`
+- 操作手冊：`docs/operations.md`
