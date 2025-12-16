@@ -84,6 +84,8 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
 
 
 def load_locations(json_path: Path) -> List[Dict[str, Any]]:
+    if not json_path.exists():
+        json_path = ensure_json(json_path)
     data = json.loads(json_path.read_text(encoding="utf-8"))
     try:
         return (
