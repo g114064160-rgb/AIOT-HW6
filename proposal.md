@@ -9,7 +9,7 @@
 ## Outputs
 - SQLite database: `data.db` (path configurable via CLI flag).
 - Tables are created/kept up to date on every run; existing rows for the same region+date are replaced.
-- Optional UI: `streamlit_app.py` renders each region’s daily高低溫表格，可自訂 JSON 路徑。
+- Optional UI: `streamlit_app.py` renders各地區日高低溫（從 SQLite 讀取，可自訂 DB 路徑）。
 
 ## Database Schema
 - `locations`
@@ -40,7 +40,7 @@ python app.py
 # specify custom paths
 python app.py --json "c:\\Users\\user\\Downloads\\F-A0010-001.json" --db "c:\\Users\\user\\Downloads\\data.db"
 
-# launch Streamlit UI (with default JSON 路徑，可在介面修改)
+# launch Streamlit UI (讀取 SQLite，預設當前目錄 data.db，可在介面修改路徑)
 streamlit run streamlit_app.py
 ```
 

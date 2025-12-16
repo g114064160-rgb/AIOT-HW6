@@ -1,62 +1,77 @@
-"""Streamlit app to view F-A0010-001 region temperatures."""
+"""Streamlit app to view temperatures stored in SQLite (data.db)."""
 
 from pathlib import Path
-import json
-from typing import Any, Dict, List
+import sqlite3
+from typing import Any, Dict, List, Tuple
 
 import streamlit as st
 
 
-DEFAULT_JSON = Path(r"c:\Users\user\Downloads\F-A0010-001.json")
+DEFAULT_DB = Path("data.db")
 
 
-def load_locations(json_path: Path) -> List[Dict[str, Any]]:
-    data = json.loads(json_path.read_text(encoding="utf-8"))
-    try:
-        return (
-            data["cwaopendata"]["resources"]["resource"]["data"]
-            ["agrWeatherForecasts"]["weatherForecasts"]["location"]
-        )
-    except KeyError as exc:
-        raise KeyError(f"Unexpected JSON structure: missing {exc}") from exc
+def load_locations(conn: sqlite3.Connection) -> List[str]:
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM locations ORDER BY name")
+    return [row[0] for row in cur.fetchall()]
+
+
+def load_temperatures(
+    conn: sqlite3.Connection, location: str | None
+) -> List[Dict[str, Any]]:
+    cur = conn.cursor()
+    query = """
+        SELECT l.name, t.date, t.max_temp_c, t.min_temp_c
+        FROM daily_temperatures t
+        JOIN locations l ON l.id = t.location_id
+    """
+    params: Tuple[Any, ...] = ()
+    if location:
+        query += " WHERE l.name = ?"
+        params = (location,)
+    query += " ORDER BY t.date, l.id"
+
+    cur.execute(query, params)
+    rows = cur.fetchall()
+    return [
+        {
+            "地區": name,
+            "日期": date,
+            "最高溫(°C)": max_temp,
+            "最低溫(°C)": min_temp,
+        }
+        for name, date, max_temp, min_temp in rows
+    ]
 
 
 def main() -> None:
-    st.title("CWA 農業氣象 - 各地區溫度")
-    st.caption("來源：F-A0010-001 JSON")
+    st.title("CWA 農業氣象 - SQLite 資料瀏覽")
+    st.caption("來源：data.db (由 app.py 寫入)")
 
-    json_path_str = st.text_input("JSON 路徑", value=str(DEFAULT_JSON))
-    json_path = Path(json_path_str).expanduser()
+    db_path_str = st.text_input("SQLite 路徑", value=str(DEFAULT_DB))
+    db_path = Path(db_path_str).expanduser()
 
-    if not json_path.exists():
-        st.error(f"檔案不存在: {json_path}")
+    if not db_path.exists():
+        st.error(f"找不到資料庫檔案: {db_path}")
+        st.info("請先執行 app.py 產生 data.db 或調整路徑。")
         return
 
     try:
-        locations = load_locations(json_path)
+        conn = sqlite3.connect(db_path)
     except Exception as exc:  # noqa: BLE001
         st.exception(exc)
         return
 
-    st.success(f"已載入 {len(locations)} 個地區")
+    with conn:
+        locations = load_locations(conn)
+        st.success(f"已載入 {len(locations)} 個地區")
 
-    for loc in locations:
-        name = loc["locationName"]
-        max_daily = loc["weatherElements"]["MaxT"]["daily"]
-        min_daily = loc["weatherElements"]["MinT"]["daily"]
+        selected = st.selectbox("選擇地區", ["全部"] + locations)
+        filter_loc = None if selected == "全部" else selected
 
-        rows = []
-        for max_entry, min_entry in zip(max_daily, min_daily):
-            rows.append(
-                {
-                    "日期": max_entry["dataDate"],
-                    "最高溫(°C)": float(max_entry["temperature"]),
-                    "最低溫(°C)": float(min_entry["temperature"]),
-                }
-            )
-
-        st.subheader(name)
-        st.dataframe(rows, hide_index=True)
+        data = load_temperatures(conn, filter_loc)
+        st.write(f"筆數：{len(data)}")
+        st.dataframe(data, hide_index=True)
 
 
 if __name__ == "__main__":
