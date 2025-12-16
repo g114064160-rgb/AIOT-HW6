@@ -16,7 +16,7 @@ python app.py --json /path/to/F-A0010-001.json --db /path/to/data.db
 
 ## Streamlit UI (read-only viewer)
 ```bash
-streamlit run streamlit_app.py
+streamlit run ui/streamlit_app.py
 ```
 - 可在 UI 修改 DB 路徑（預設 `data.db`）與 JSON 路徑。
 - 若 DB 不存在，會嘗試自動用 JSON 匯入；亦可按「重新匯入」強制覆寫同日期資料。

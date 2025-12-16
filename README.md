@@ -14,9 +14,9 @@ pip install -r requirements.txt
   # or
   python app.py --json /path/to/F-A0010-001.json --db /path/to/data.db
   ```
-- `streamlit_app.py`：從 SQLite 讀取資料並顯示表格，可在 UI 中改 DB 路徑（預設 `data.db`）。
+- `ui/streamlit_app.py`：從 SQLite 讀取資料並顯示表格，可在 UI 中改 DB 路徑（預設 `data.db`）。
   ```bash
-  streamlit run streamlit_app.py
+  streamlit run ui/streamlit_app.py
   ```
 
 ## 資料表設計

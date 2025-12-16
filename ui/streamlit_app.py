@@ -3,21 +3,27 @@
 from pathlib import Path
 import sqlite3
 from typing import Any, Dict, List, Tuple
+import sys
 
 import streamlit as st
+
+# Ensure project root on sys.path to import app.py from parent directory
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
 import app as ingest  # reuse ingestion utilities
 
 
-DEFAULT_DB = Path("data.db")
-DEFAULT_JSON = Path("F-A0010-001.json")
+DEFAULT_DB = PROJECT_ROOT / "data.db"
+DEFAULT_JSON = PROJECT_ROOT / "F-A0010-001.json"
 
 
 def resolve_json(path: Path) -> Path | None:
     candidates = [
         path,
         Path.cwd() / path,
-        Path(__file__).resolve().parent / path.name,
+        PROJECT_ROOT / path.name,
     ]
     for cand in candidates:
         if cand.exists():
