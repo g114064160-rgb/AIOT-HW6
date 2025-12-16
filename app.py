@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
-DEFAULT_JSON = Path(r"c:\Users\user\Downloads\F-A0010-001.json")
+DEFAULT_JSON = Path("F-A0010-001.json")
 DEFAULT_DB = Path("data.db")
 
 
@@ -104,6 +104,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if not args.json.exists():
+        raise FileNotFoundError(
+            f"JSON file not found: {args.json}. "
+            "Provide a valid path with --json."
+        )
+
     locations = load_locations(args.json)
     with sqlite3.connect(args.db) as conn:
         conn.execute("PRAGMA foreign_keys = ON;")
