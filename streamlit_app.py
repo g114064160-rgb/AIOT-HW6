@@ -60,12 +60,13 @@ def load_temperatures(
 
 
 def ingest_json_to_db(db_path: Path, json_path: Path) -> str:
-    locations = ingest.load_locations(json_path)
+    json_actual = ingest.ensure_json(json_path)
+    locations = ingest.load_locations(json_actual)
     with sqlite3.connect(db_path) as conn:
         conn.execute("PRAGMA foreign_keys = ON;")
         ingest.ensure_schema(conn)
         ingest.insert_data(conn, locations)
-    return f"已匯入 {len(locations)} 個地區到 {db_path}"
+    return f"已匯入 {len(locations)} 個地區到 {db_path} (JSON: {json_actual})"
 
 
 def main() -> None:

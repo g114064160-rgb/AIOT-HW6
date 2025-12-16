@@ -6,8 +6,13 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List
 
+import requests
+
 
 DEFAULT_JSON = Path("F-A0010-001.json")
+DEFAULT_JSON_URL = (
+    "https://raw.githubusercontent.com/g114064160-rgb/AIOT-HW6/main/F-A0010-001.json"
+)
 DEFAULT_DB = Path("data.db")
 
 
@@ -102,7 +107,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_json(path: Path) -> Path:
+def resolve_json(path: Path) -> Path | None:
     """Find JSON file in common locations: given path, CWD, script directory."""
     candidates = [
         path,
@@ -112,14 +117,35 @@ def resolve_json(path: Path) -> Path:
     for cand in candidates:
         if cand.exists():
             return cand
-    raise FileNotFoundError(
-        f"JSON file not found. Tried: {', '.join(str(c) for c in candidates)}"
-    )
+    return None
+
+
+def download_json(url: str, dest: Path) -> Path:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    dest.write_bytes(resp.content)
+    return dest
+
+
+def ensure_json(path: Path) -> Path:
+    """Ensure JSON exists; if missing, download from DEFAULT_JSON_URL."""
+    found = resolve_json(path)
+    if found:
+        return found
+    try:
+        dest = Path(__file__).resolve().parent / path.name
+        return download_json(DEFAULT_JSON_URL, dest)
+    except Exception as exc:  # noqa: BLE001
+        raise FileNotFoundError(
+            f"JSON file not found and download failed. "
+            f"Tried to save to {dest}. Original error: {exc}"
+        ) from exc
 
 
 def main() -> None:
     args = parse_args()
-    json_path = resolve_json(args.json)
+    json_path = ensure_json(args.json)
     locations = load_locations(json_path)
     with sqlite3.connect(args.db) as conn:
         conn.execute("PRAGMA foreign_keys = ON;")

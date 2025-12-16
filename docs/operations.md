@@ -29,7 +29,7 @@ streamlit run streamlit_app.py
 4) If using live JSON, add it to the repo or host it and update DB path after ingest.
 
 ## Common Issues
-- FileNotFoundError (ingest): provide `--json` with a valid path, or place `F-A0010-001.json` beside `app.py`.
+- FileNotFoundError (ingest): provide `--json` with a valid path, or place `F-A0010-001.json` beside `app.py`. 如果缺少檔案，系統會嘗試自動下載預設 JSON（GitHub raw）。
 - No data in UI: DB 可能不存在或無資料，UI 會提示並可直接匯入。
 - Wrong DB path in UI:更新 DB 路徑或 JSON 路徑後重新匯入。
 
